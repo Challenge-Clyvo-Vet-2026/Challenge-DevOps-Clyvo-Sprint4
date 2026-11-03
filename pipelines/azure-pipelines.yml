@@ -1,0 +1,37 @@
+# CI da elo-vet-api: build com Gradle, testes JUnit e publicação do artefato (.jar)
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- script: chmod +x gradlew
+  displayName: 'Permissão de execução do gradlew'
+
+- task: Gradle@3
+  displayName: 'Build e testes (Java 21)'
+  inputs:
+    gradleWrapperFile: 'gradlew'
+    tasks: 'build'
+    publishJUnitResults: true
+    testResultsFiles: '**/TEST-*.xml'
+    javaHomeOption: 'Path'
+    jdkDirectory: '$(JAVA_HOME_21_X64)'
+
+- task: CopyFiles@2
+  displayName: 'Copiar JAR executável'
+  inputs:
+    SourceFolder: '$(System.DefaultWorkingDirectory)/build/libs'
+    Contents: |
+      *.jar
+      !*-plain.jar
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publicar artefato'
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'drop'
